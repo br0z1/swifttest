@@ -1,0 +1,344 @@
+take a look at this code. don't generate anything yet, this is just for context. I will show you the error report in the next part
+//
+//  ContentView.swift
+//  basicUItest
+//
+//  Created by Edgar Guzman on 4/28/23.
+//
+import SwiftUI
+let horizontalPadding: CGFloat = 16 // Define a constant for horizontal padding
+
+// Comments popup view
+struct CommentsView: View {
+    let closeAction: () -> Void // Define an action to close the popup
+    
+    var body: some View {
+        GeometryReader { geometry in // Use GeometryReader to get the dimensions of the container
+            VStack {
+                HStack { // Create a horizontal stack for the close button
+                    Spacer() // Add a flexible spacer to push the button to the right
+                    Button(action: closeAction, label: {
+                        Image(systemName: "xmark")
+                            .foregroundColor(.black)
+                            .font(.system(size: geometry.size.width * 0.04)) // Adjust the font size relative to the screen width
+                    })
+                }
+                .padding(.top, geometry.safeAreaInsets.top + 10)
+                .padding(.trailing, 10)
+                
+                Spacer() // Add a flexible spacer to center the "Comments" text vertically
+                Text("Comments") // Create a text view with "Comments" text
+                Spacer() // Add another flexible spacer
+            }
+            .padding() // Add padding around the VStack
+        }
+    }
+}
+
+// Add UserProfileView
+struct UserProfileView: View {
+    let homeAction: () -> Void
+
+    var body: some View {
+        ZStack {
+            Color.white.edgesIgnoringSafeArea(.all) // Add a white background
+            
+            VStack {
+                Spacer()
+                Text("User Profile")
+                    .font(.largeTitle)
+                    .multilineTextAlignment(.center)
+                Spacer()
+                Button(action: homeAction, label: {
+                    Text("Home")
+                        .foregroundColor(.white)
+                        .padding()
+                        .background(Color.blue)
+                        .cornerRadius(8)
+                })
+                Spacer()
+            }
+        }
+    }
+}
+
+// GrayBoxView
+struct GrayBoxView: View {
+    var body: some View {
+        // Gray box with 0.5 opacity and rounded corners
+        Color.gray.opacity(0.5)
+            .cornerRadius(8)
+    }
+}
+
+// MessagesView
+struct MessagesView: View {
+    var body: some View {
+        // Placeholder for future content
+        VStack {
+            Spacer()
+            Text("something will be here")
+                .font(.largeTitle)
+                .multilineTextAlignment(.center)
+            Spacer()
+        }
+        .edgesIgnoringSafeArea(.all)
+    }
+}
+
+// PagingScrollView for vertical scrolling of items
+struct PagingScrollView<Page: View, Data: RandomAccessCollection>: View where Data.Index == Int {
+    let pageSize: CGSize
+    let axis: Axis.Set
+    let content: (Int) -> Page
+    let items: Data
+    let initialPageIndex: Int
+    let pageCount: Int
+    typealias Page = Page
+    typealias Data = Data
+
+    // Initialize the PagingScrollView with required parameters
+    init(pageSize: CGSize, axis: Axis.Set, content: @escaping (Int) -> Page, items: Data, initialPageIndex: Int = 0) {
+        self.pageSize = pageSize
+        self.axis = axis
+        self.content = content
+        self.items = items
+        self.initialPageIndex = initialPageIndex
+        pageCount = items.count
+    }
+
+    
+    var body: some View {
+          GeometryReader { geometry in // Use GeometryReader to get the dimensions of the container
+              ScrollView(axis, showsIndicators: false) {
+                  if axis == .horizontal {
+                      LazyHStack(alignment: .top, spacing: geometry.size.width * 0.04) { // Create a lazy horizontal stack with a dynamic spacing
+                          ForEach(items.indices, id: \.self) { index in // Loop through items' indices
+                              content(index) // Create content for each item
+                                  .frame(width: pageSize.width, height: pageSize.height) // Set the frame size for each item
+                                  .padding(.horizontal, 5) // Add horizontal padding for each item
+                                  .offset(x: -CGFloat(initialPageIndex) * (pageSize.width + geometry.size.width * 0.04))
+                          }
+                      }
+                  } else {
+                      LazyVStack(alignment: .leading, spacing: geometry.size.height * 0.04) { // Create a lazy vertical stack with a dynamic spacing
+                          ForEach(items.indices, id: \.self) { index in // Loop through items' indices
+                              content(index) // Create content for each item
+                                  .frame(width: pageSize.width, height: pageSize.height) // Set the frame size for each item
+                                  .padding(.horizontal, 5) // Add horizontal padding for each item
+                                  .offset(y: -CGFloat(initialPageIndex) * (pageSize.height + geometry.size.height * 0.04))
+                          }
+                      }
+                  }
+              }
+          }
+      }
+    
+    struct ContentView: View {
+        @State private var selectedTabIndex = 1 // Define a state for the currently selected tab index
+        @State private var isUserProfileViewActive = false //Defines a state for whether the user profile page is open
+        
+        var body: some View {
+            GeometryReader { geometry in // Use GeometryReader to get the dimensions of the container
+                ZStack { // Create a ZStack for layering elements on top of each other
+                    Color(red: 153/255, green: 252/255, blue: 175/255) // Background color
+                        .edgesIgnoringSafeArea(.all) // Ignore safe area to extend the color to the screen edges
+                    
+                    // Create a TabView for different tabs with a binding to the selectedTabIndex state
+                    TabView(selection: $selectedTabIndex) {
+                        GrayBoxView()
+                            .frame(width: geometry.size.width * 0.3, height: geometry.size.height * 0.3) // Set frame size for GrayBoxView
+                            .position(x: geometry.size.width / 2, y: geometry.size.height / 2) // Position GrayBoxView in the center
+                            .tag(0) // Assign a tag value for this tab
+                        
+                        GeometryReader { geo in // Use another GeometryReader for the container dimensions
+                            let size = CGSize(width: geo.size.width * 0.9, height: geo.size.height * 0.4) // Set size for the PagingScrollView
+                            PagingScrollView(pageSize: size, axis: .vertical, content: { index in // Create a PagingScrollView with vertical scrolling
+                                SquareView(index: index) // Create a SquareView for each item
+                                    .frame(width: size.width, height: size.height) as! Page // Set frame size for SquareView
+                            }, items: (0..<1000).lazy.map { $0 } as! Data, initialPageIndex: 1) // Use a range of numbers as the items for the PagingScrollView and set the initialPageIndex to 1 to start on the second tab
+                            .overlay( // Add an overlay on top of the PagingScrollView
+                                Color.clear
+                                    .frame(width: 8, height: geo.size.height) // Create a clear frame with a specified width and height
+                                    .offset(x: geo.size.width / 2 - 4) // Offset the overlay to align with the center
+                                    .allowsHitTesting(false) // Disable hit testing to allow interaction with underlying views
+                            )
+                            .frame(width: geometry.size.width, height: geometry.size.height) // Set frame size for the PagingScrollView container
+                            .padding(.horizontal, horizontalPadding) // Add horizontal padding
+                            .tag(1) // Assign a tag value for this tab
+                        }
+                        
+                        MessagesView() // Create a MessagesView
+                            .frame(width: geometry.size.width, height: geometry.size.height) // Set frame size for MessagesView
+                            .tag(2) // Assign a tag value for this tab
+                    }
+                    .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never)) // Hide the page indicators
+                    .edgesIgnoringSafeArea(.all) // Ignore safe area to extend the content to the screen edges
+                    
+                    // White header
+                    Color.white
+                        .frame(height: geometry.size.height * 0.1) // Set the height of the header
+                        .edgesIgnoringSafeArea(.top) // Ignore the top safe area to extend the header to the screen edge
+                        .zIndex(2) // This makes sure the header stays on top of other views
+                        .position(x: geometry.size.width / 2, y: geometry.size.height * 0.05) // Position the header at the top
+                    
+                    
+                    // White circle with black border and "spheres" text
+                    VStack {
+                        Spacer()
+                        ZStack {
+                            // White circle
+                            Circle()
+                                .fill(Color.white)
+                                .frame(width: geometry.size.width * 0.2, height: geometry.size.width * 0.2)
+                            
+                            // Image
+                            Image("butterfly_concept") // Replace "your_image_name" with the actual name of your image
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: geometry.size.width * 0.18, height: geometry.size.width * 0.18)
+                                .clipShape(Circle())
+                        }
+                    }
+                    .frame(height: geometry.size.height * 1.03)
+                    .zIndex(1) // This makes sure the circle stays on top of other views
+                    
+                    // Add UserProfileButton
+                    Button(action: {
+                        isUserProfileViewActive = true
+                    }, label: {
+                        Image(systemName: "person.circle")
+                            .font(.system(size: geometry.size.width * 0.06))
+                            .foregroundColor(.black)
+                    })
+                    .buttonStyle(BorderlessButtonStyle())
+                    .padding(.top, geometry.safeAreaInsets.top + 10) // Adjust the padding based on the safeAreaInsets
+                    .padding(.leading, 20)
+                    .opacity(isUserProfileViewActive ? 0.0 : 1.0)
+                    .position(x: geometry.size.width * 0.08, y: geometry.size.height - 800) // Position the icon at the top left
+                    .zIndex(2)
+                    
+                    
+                }
+                // Add UserProfileView outside of the main ZStack
+                if isUserProfileViewActive {
+                    UserProfileView(homeAction: {
+                        isUserProfileViewActive = false
+                    })
+                }
+            }
+        }
+        
+        
+        struct SquareView: View {
+            let index: Int
+            @State private var isLiked = false
+            @State private var isCommenting = false
+            
+            var body: some View {
+                GeometryReader { geometry in
+                    ZStack {
+                        // Background rectangle with rounded corners and a shadow
+                        Rectangle()
+                            .fill(Color(red: 235/255, green: 254/255, blue: 250/255))
+                            .shadow(color: Color.gray.opacity(0.4), radius: 4, x: 0, y: 4)
+                            .background(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color(red: 107/255, green: 147/255, blue: 158/255))
+                            )
+                        
+                        // Content VStack with heart button and index text
+                        VStack {
+                            HStack {
+                                Spacer()
+                                // Heart button
+                                Button(action: {
+                                    isLiked.toggle()
+                                }, label: {
+                                    Image(systemName: isLiked ? "heart.fill" : "heart")
+                                        .foregroundColor(isLiked ? .red : .black)
+                                        .font(.system(size: geometry.size.width * 0.06))
+                                })
+                                .buttonStyle(BorderlessButtonStyle())
+                                .padding(.top, 5)
+                                .padding(.trailing, 5)
+                            }
+                            Spacer()
+                            // Index text
+                            Text("\(index + 1)")
+                                .foregroundColor(.black)
+                                .frame(height: 0)
+                        }
+                        .padding(.horizontal, 5)
+                        .padding(.top, 5)
+                        .offset(x: -5, y: -10)
+                        
+                        // Show comments view when isCommenting is true
+                        if isCommenting {
+                            CommentsView(closeAction: {
+                                isCommenting = false
+                            })
+                            .frame(width: geometry.size.width * 0.8, height: geometry.size.height * 0.8)
+                            .background(Color.white)
+                            .cornerRadius(16)
+                            .zIndex(3)
+                            .overlay(
+                                Rectangle()
+                                    .fill(Color.black.opacity(0.5))
+                                    .onTapGesture {
+                                        isCommenting = false
+                                    }
+                                    .edgesIgnoringSafeArea(.all)
+                                , alignment: .center
+                            )
+                            .transition(.opacity)
+                        }
+                        // Comment button
+                        Button(action: {
+                            isCommenting = true
+                        }, label: {
+                            Image(systemName: "text.bubble.fill")
+                                .foregroundColor(.black)
+                                .font(.system(size: geometry.size.width * 0.04))
+                        })
+                        .buttonStyle(BorderlessButtonStyle())
+                        .frame(width: 30, height: 30)
+                        .background(Color.white, alignment: .topTrailing)
+                        .cornerRadius(15)
+                        .padding(.top, 20)
+                        .padding(.trailing, 20)
+                        .opacity(isCommenting ? 0.0 : 1.0)
+                    }
+                }
+            }
+            
+            struct GrayBoxView: View {
+                var body: some View {
+                    // Gray box with 0.5 opacity and rounded corners
+                    Color.gray.opacity(0.5)
+                        .cornerRadius(8)
+                }
+            }
+            
+            struct MessagesView: View {
+                var body: some View {
+                    // Placeholder for future content
+                    VStack {
+                        Spacer()
+                        Text("something will be here")
+                            .font(.largeTitle)
+                            .multilineTextAlignment(.center)
+                        Spacer()
+                    }
+                    .edgesIgnoringSafeArea(.all)
+                }
+            }
+            
+            struct ContentView_Previews: PreviewProvider {
+                static var previews: some View {
+                    ContentView()
+                }
+            }
+        }
+    }
+}
